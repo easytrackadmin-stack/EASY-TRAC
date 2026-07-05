@@ -53,7 +53,15 @@ const MAX_CONCURRENT_SCANS = parseInt(process.env.MAX_CONCURRENT_SCANS || '3', 1
 let scanInFlight = 0;
 
 // ── sGTM native template loader — served to tool.html via /api/sgtm-templates ──
-const sgtmTemplateLoader = require('./lib/sgtm-template-loader');
+// Optional at startup: deployments built from an older bundle may not include
+// the native template files yet. The UI has inline fallbacks, so missing files
+// should disable /api/sgtm-templates rather than crash the whole server.
+let sgtmTemplateLoader = { loadTpl: () => null };
+try {
+  sgtmTemplateLoader = require('./lib/sgtm-template-loader');
+} catch (e) {
+  console.warn('[sgtm-templates] loader unavailable; /api/sgtm-templates will return null templates:', e.message);
+}
 const _SGTM_TPL_META     = sgtmTemplateLoader.loadTpl('meta-capi');
 const _SGTM_TPL_TIKTOK   = sgtmTemplateLoader.loadTpl('tiktok-events');
 const _SGTM_TPL_SNAP     = sgtmTemplateLoader.loadTpl('snapchat-capi');
