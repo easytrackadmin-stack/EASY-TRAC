@@ -67,13 +67,37 @@ const _SGTM_TPL_TIKTOK   = sgtmTemplateLoader.loadTpl('tiktok-events');
 const _SGTM_TPL_SNAP     = sgtmTemplateLoader.loadTpl('snapchat-capi');
 const _SGTM_TPL_GADS     = sgtmTemplateLoader.loadTpl('google-ads-ec');
 
+function optionalStartupRequire(modulePath, loader, fallback) {
+  try {
+    return loader();
+  } catch (e) {
+    console.warn('[startup] optional module unavailable: ' + modulePath + ' — ' + e.message);
+    return fallback;
+  }
+}
+
+function _unavailableModule(name) {
+  const err = new Error(name + ' module is not available in this deployment bundle');
+  err.status = 503;
+  err.code = 'MODULE_UNAVAILABLE';
+  throw err;
+}
+
 // ── Managed GTM services (optional — endpoints return 503 if not set up) ──
 const gtmService        = require('./gtm-service');
 const firestoreService  = require('./firestore-service');
-const gtmConfigBuilder  = require('./lib/gtm-config-builder');
-const managedCreateServer = require('./lib/provision/create-server');
-const managedProvisionRunner = require('./lib/provision/runner');
-const shardRegistry = require('./lib/shard-registry');
+const gtmConfigBuilder  = optionalStartupRequire('./lib/gtm-config-builder', () => require('./lib/gtm-config-builder'), {
+  buildWebConfig: () => _unavailableModule('gtm-config-builder'),
+});
+const managedCreateServer = optionalStartupRequire('./lib/provision/create-server', () => require('./lib/provision/create-server'), {
+  createServer: () => _unavailableModule('managed create-server'),
+});
+const managedProvisionRunner = optionalStartupRequire('./lib/provision/runner', () => require('./lib/provision/runner'), {
+  run: () => _unavailableModule('managed provision runner'),
+});
+const shardRegistry = optionalStartupRequire('./lib/shard-registry', () => require('./lib/shard-registry'), {
+  isConfigured: () => false,
+});
 
 // ── Server-Side Tracking services ─────────────────────────────────────────
 const cryptoVault  = require('./lib/crypto-vault');
@@ -91,21 +115,61 @@ const cloudTasks              = require('./lib/cloud-tasks');
 // in a private GCS bucket and the job carries only a small { bucket, object } ref.
 const configBlobStore         = require('./lib/config-blob-store');
 // Client Profile API services (Phase 1)
-const apiKeyService   = require('./lib/api-key-service');
-const auditService    = require('./lib/audit-service');
-const { validateTargetUrl, safeFetch, resolveHostname, isBlockedIp } = require('./lib/ssrf-guard');
-const timelineService = require('./lib/timeline-service');
-const profileService  = require('./lib/profile-service');
+const apiKeyService   = optionalStartupRequire('./lib/api-key-service', () => require('./lib/api-key-service'), {
+  generate: () => _unavailableModule('api-key-service'),
+  parse: () => null,
+  verify: () => false,
+});
+const auditService    = optionalStartupRequire('./lib/audit-service', () => require('./lib/audit-service'), {
+  hashEmail: () => null,
+  computeDiff: () => null,
+});
+const {
+  validateTargetUrl,
+  safeFetch,
+  resolveHostname,
+  isBlockedIp,
+} = optionalStartupRequire('./lib/ssrf-guard', () => require('./lib/ssrf-guard'), {
+  validateTargetUrl: () => _unavailableModule('ssrf-guard'),
+  safeFetch: async () => _unavailableModule('ssrf-guard'),
+  resolveHostname: async () => _unavailableModule('ssrf-guard'),
+  isBlockedIp: () => true,
+});
+const timelineService = optionalStartupRequire('./lib/timeline-service', () => require('./lib/timeline-service'), {
+  record: async () => {},
+});
+const profileService  = optionalStartupRequire('./lib/profile-service', () => require('./lib/profile-service'), {
+  getBundle: async () => null,
+});
 // Health evaluation job (Phase 2)
-const healthService   = require('./lib/health-service');
+const healthService   = optionalStartupRequire('./lib/health-service', () => require('./lib/health-service'), {
+  runHealthJob: async () => {},
+});
 // DLQ retry worker — retries failed CAPI sends stored in Firestore dlq_events
-const dlqWorker       = require('./lib/dlq-worker');
+const dlqWorker       = optionalStartupRequire('./lib/dlq-worker', () => require('./lib/dlq-worker'), {
+  start: () => ({ unref: () => {} }),
+});
 // In-process metrics counters — exposed via GET /api/v1/metrics
-const metrics           = require('./lib/metrics');
+const metrics           = optionalStartupRequire('./lib/metrics', () => require('./lib/metrics'), {
+  incCapiSuccess: () => {},
+  incCapiFailure: () => {},
+  incDlqCreated: () => {},
+  incDlqReplayed: () => {},
+  incDlqExhausted: () => {},
+  incConsentDenied: () => {},
+  incProvisioningFailed: () => {},
+  incProvisioningStalled: () => {},
+  snapshot: () => ({ counters: {}, platformStats: {}, startedAt: Date.now(), uptimeMs: 0 }),
+  checkAlerts: () => [],
+});
 // Cloud Monitoring push — flushes metrics to GCP every 60s (no-ops off-GCP)
-const cloudMonitoring   = require('./lib/cloud-monitoring');
+const cloudMonitoring   = optionalStartupRequire('./lib/cloud-monitoring', () => require('./lib/cloud-monitoring'), {
+  pushSnapshot: async () => {},
+});
 // Secret Manager wrapper — resolves MASTER_ENCRYPTION_KEY from GCP or ENV
-const secretManager     = require('./lib/secret-manager');
+const secretManager     = optionalStartupRequire('./lib/secret-manager', () => require('./lib/secret-manager'), {
+  validateAtStartup: async () => {},
+});
 
 // Beacon write deduplication — bucket-keyed per 5-minute window.
 // Value is the bucket number; replaces itself naturally each period.
