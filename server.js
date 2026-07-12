@@ -298,6 +298,19 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 
 // ══════════════════════════════════════════════════════════════════════════════
+// CLIENT-ROUTER APP ROUTES
+// The app (tool.html) is a single-page app with a lightweight History-API router.
+// These clean paths have no backing .html file — we serve the SPA entry (tool.html)
+// for each so a direct visit or a browser refresh returns 200 (never 404). The
+// in-app router then renders the correct view and enforces auth guards / redirects.
+// Cloudflare is DNS + SSL + proxy ONLY — no page rules / rewrites are needed
+// because the origin already returns the app for every app route.
+// ══════════════════════════════════════════════════════════════════════════════
+const APP_ROUTES = new Set([
+  '/register', '/sign-in', '/dashboard', '/tool', '/pricing', '/account', '/settings',
+]);
+
+// ══════════════════════════════════════════════════════════════════════════════
 // PHASE-1 FEATURE FLAG — import managed server containers via versions:import
 // When MANAGED_IMPORT_SERVER_CONFIG=1, /api/managed/create-container stages the
 // client-built serverConfigJson in GCS and the worker imports it full-fidelity
@@ -4555,8 +4568,14 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(400, securityHeaders()); res.end('Bad Request'); return;
   }
 
-  // Default root → tool.html (the app's single-page entry)
-  const requestedPath = urlPath === '/' ? '/tool.html' : urlPath;
+  // Default root → tool.html (the app's single-page entry). Clean app routes
+  // (/dashboard, /sign-in, …) also resolve to tool.html so direct URL access and
+  // refresh never 404 — the in-app router renders the right view. Trailing
+  // slashes are tolerated (/dashboard/ === /dashboard).
+  const _cleanPath = urlPath.replace(/\/+$/, '') || '/';
+  const requestedPath = (urlPath === '/' || APP_ROUTES.has(_cleanPath))
+    ? '/tool.html'
+    : urlPath;
   const filePath      = path.normalize(path.join(ROOT, requestedPath));
 
   // Path traversal guard — filePath MUST stay within ROOT

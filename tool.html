@@ -15683,7 +15683,10 @@
       auth.onAuthStateChanged(async function (fbUser) {
         if (!fbUser) {
           // Not logged in — try cached session as fallback
-          _tryLoadCachedSession();
+          var _cached = _tryLoadCachedSession();
+          // No cached session either → genuinely a guest. Let the router enforce
+          // guest guards (protected routes → /sign-in, /register stays, etc.).
+          if (!_cached) { try { if (window.ETRouter) ETRouter.apply(); } catch (_) {} }
           return;
         }
 
@@ -15874,6 +15877,164 @@
         await saveProject(config);
       }, 800);
     };
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CLIENT-SIDE ROUTER  (History API — real routes, no #hash)
+    // Maps clean paths under the app origin to existing views + auth guards,
+    // keeps the URL in sync with the visible view, and survives refresh /
+    // direct-URL / back-forward. The server serves tool.html for every route in
+    // APP_ROUTES, so this router is what turns a raw path into the right screen.
+    //
+    //   /sign-in   → gate, login tab        (guests only)
+    //   /register  → gate, signup tab       (guests only)
+    //   /dashboard → app, Overview view     (auth required)
+    //   /tool      → app, Pixel Config view (auth required)
+    //   /account   → app + Settings panel   (auth required)
+    //   /settings  → app + Settings panel   (auth required)
+    //   /pricing   → app, Overview view     (public; no dedicated pricing screen)
+    //
+    // It wraps switchAppView / switchGateTab / toggleSettings / enterTool rather
+    // than replacing them, so all existing functionality is preserved.
+    // ════════════════════════════════════════════════════════════════════════
+    var ETRouter = (function () {
+      var ROUTES = {
+        '/sign-in':   { guard: 'guest',  tab: 'login'  },
+        '/register':  { guard: 'guest',  tab: 'signup' },
+        '/dashboard': { guard: 'auth',   view: 'overview' },
+        '/tool':      { guard: 'auth',   view: 'pixels' },
+        '/account':   { guard: 'auth',   view: 'overview', settings: true },
+        '/settings':  { guard: 'auth',   view: 'overview', settings: true },
+        '/pricing':   { guard: 'public', view: 'overview' }
+      };
+      // Sidebar button ids so programmatic view switches update the active state.
+      var VIEW_BTN = {
+        overview: 'sbOverview', pixels: 'sbPixels', gtmview: 'sbGtm',
+        projects: 'sbProjects', versions: 'sbVersions', deployments: 'sbDeployments',
+        health: 'sbHealth', audit: 'sbAudit'
+      };
+
+      var _busy = false;   // re-entrancy guard: suppress URL writes during programmatic switches
+
+      // Capture the ORIGINAL implementations (all hoisted function declarations).
+      var _origSwitchAppView  = window.switchAppView;
+      var _origSwitchGateTab   = window.switchGateTab;
+      var _origToggleSettings  = window.toggleSettings;
+      var _origEnterTool       = window.enterTool;
+
+      function currentPath() {
+        var p = (location.pathname || '/').replace(/\/+$/, '') || '/';
+        return p.toLowerCase();
+      }
+      function isAuthed() { return !!(window.currentUser && window.currentUser.id); }
+      function pendingVisible() {
+        var p = document.getElementById('gform-pending');
+        return !!(p && getComputedStyle(p).display !== 'none');
+      }
+      function settingsOpen() {
+        var p = document.getElementById('settingsPanel');
+        return !!(p && (p.style.transform === 'translateX(0px)' || p.style.transform === 'translateX(0)'));
+      }
+      function setUrl(path, replace) {
+        var cur = (location.pathname || '/').replace(/\/+$/, '') || '/';
+        if (cur.toLowerCase() === path.toLowerCase()) return;
+        try { history[replace ? 'replaceState' : 'pushState']({ et: 1 }, '', path); } catch (_) {}
+      }
+
+      function showGate(tab) {
+        var g = document.getElementById('gate');
+        if (g) { g.style.transition = ''; g.style.display = 'flex'; g.style.opacity = '1'; }
+        _busy = true;
+        try { _origSwitchGateTab(tab === 'signup' ? 'signup' : 'login'); } finally { _busy = false; }
+      }
+      function showApp(view) {
+        var g = document.getElementById('gate');
+        if (g) { g.style.display = 'none'; g.style.opacity = '0'; }
+        _busy = true;
+        try {
+          var btn = VIEW_BTN[view] ? document.getElementById(VIEW_BTN[view]) : null;
+          _origSwitchAppView(view, btn);
+        } finally { _busy = false; }
+      }
+      function openSettings()  { if (!settingsOpen()) { _busy = true; try { _origToggleSettings(); } finally { _busy = false; } } }
+      function closeSettings() { if (settingsOpen())  { _busy = true; try { _origToggleSettings(); } finally { _busy = false; } } }
+
+      // The core: reconcile the current URL with auth state + the visible view.
+      function apply() {
+        // Never fight the approval-pending panel — it owns the gate while shown.
+        if (pendingVisible()) return;
+
+        var path   = currentPath();
+        var authed = isAuthed();
+        var r      = ROUTES[path];
+
+        // Unknown path (e.g. '/', or something served as the SPA) → sensible default.
+        if (!r) {
+          path = authed ? '/dashboard' : '/sign-in';
+          r = ROUTES[path];
+          setUrl(path, true);
+        }
+
+        // Guard: protected route but no session → sign-in.
+        if (r.guard === 'auth' && !authed) {
+          setUrl('/sign-in', true);
+          showGate('login');
+          return;
+        }
+        // Guard: auth pages while already signed in → dashboard.
+        if (r.guard === 'guest' && authed) {
+          setUrl('/dashboard', true);
+          showApp('overview');
+          return;
+        }
+
+        // Render.
+        if (r.view === undefined) {          // pure auth page (/sign-in, /register)
+          showGate(r.tab);
+        } else if (authed) {                 // app view (auth or public-while-authed)
+          showApp(r.view);
+          if (r.settings) openSettings(); else closeSettings();
+        } else {                             // public route while logged out → gate
+          setUrl('/sign-in', true);
+          showGate('login');
+        }
+      }
+
+      // ── Install wrappers so user-driven navigation keeps the URL in sync ──
+      window.switchAppView = function (viewKey, btnEl) {
+        _origSwitchAppView(viewKey, btnEl);
+        if (_busy) return;
+        var url = viewKey === 'overview' ? '/dashboard'
+                : viewKey === 'pixels'   ? '/tool'
+                : null;
+        if (url) setUrl(url, false);
+      };
+      window.switchGateTab = function (tab) {
+        _origSwitchGateTab(tab);
+        if (_busy) return;
+        setUrl(tab === 'signup' ? '/register' : '/sign-in', false);
+      };
+      window.toggleSettings = function () {
+        var wasOpen = settingsOpen();
+        _origToggleSettings();
+        if (_busy) return;
+        if (!wasOpen) {
+          setUrl('/settings', false);        // opened
+        } else {                             // closed → back to the view underneath
+          var av = (document.querySelector('.app-view.active') || {}).id;
+          setUrl(av === 'view-pixels' ? '/tool' : '/dashboard', false);
+        }
+      };
+      window.enterTool = function (u, t, n) {
+        _origEnterTool(u, t, n);
+        // enterTool reveals the app over ~400ms; apply the requested route just after.
+        setTimeout(apply, 450);
+      };
+
+      // Back / forward navigation.
+      window.addEventListener('popstate', apply);
+
+      return { apply: apply, routes: ROUTES };
+    })();
 
     // Firebase init triggered on DOMContentLoaded
     if (document.readyState === 'loading') {
