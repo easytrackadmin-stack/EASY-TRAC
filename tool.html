@@ -8,8 +8,8 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Easy Track — Pixel Config Generator</title>
-  <!-- Favicon — Easy Track Logo -->
+  <title>EasyTrack — Pixel Config Generator</title>
+  <!-- Favicon — EasyTrack Logo -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -2980,6 +2980,124 @@
       margin-inline-start: auto;
     }
 
+    /* ── Server-Side Tracking temporary lock (UI-only, backend untouched) ── */
+    .sb-locked {
+      position: relative;
+      opacity: .75;
+      cursor: not-allowed;
+    }
+    .sb-locked:hover {
+      background: rgba(47, 107, 255, 0.05);
+      color: var(--mut);
+    }
+    .sb-soon-premium {
+      position: absolute;
+      top: -6px;
+      right: 10px;
+      margin-inline-start: 0;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      color: #FFFFFF;
+      background: linear-gradient(135deg, var(--acc), #1A54F0);
+      border: 1px solid rgba(120, 160, 255, .6);
+      border-radius: 100px;
+      padding: 2.5px 9px;
+      pointer-events: none;
+      box-shadow: 0 0 10px rgba(47, 107, 255, .5), 0 0 24px rgba(47, 107, 255, .22);
+      animation: ssSoonPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes ssSoonPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(47, 107, 255, .45), 0 0 18px rgba(47, 107, 255, .18); }
+      50%      { box-shadow: 0 0 14px rgba(47, 107, 255, .8), 0 0 30px rgba(47, 107, 255, .35); }
+    }
+    /* Generic lock for cards / buttons (Server-Side surfaces) */
+    .ss-lock {
+      position: relative;
+      opacity: .75;
+      cursor: not-allowed !important;
+    }
+    .ss-lock * { cursor: not-allowed !important; }
+    .pc-ss-card.ss-lock { overflow: visible; }       /* let the floating SOON badge + tooltip escape the card */
+    .ss-lock .pc-ss-toggle { pointer-events: none; } /* click falls through to the card's modal handler */
+    .ss-soon-chip {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      color: #FFFFFF;
+      background: linear-gradient(135deg, var(--acc), #1A54F0);
+      border: 1px solid rgba(120, 160, 255, .6);
+      border-radius: 100px;
+      padding: 2px 7px;
+      pointer-events: none;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(47, 107, 255, .45);
+      animation: ssSoonPulse 2.6s ease-in-out infinite;
+    }
+    /* Mixpanel temporary SOON lock — visual/UI lock only. All Mixpanel code paths
+       (event maps, tag builders, validators) stay intact; remove .cbtn-soon from the
+       Mixpanel button + flip MIXPANEL_LOCKED to false to re-enable. */
+    .cbtn.cbtn-soon {
+      opacity: .7;
+      cursor: not-allowed !important;
+      overflow: visible; /* let the hover tooltip escape the card */
+    }
+    .cbtn.cbtn-soon * { cursor: not-allowed !important; }
+    .cbtn.cbtn-soon:hover {
+      border-color: rgba(255, 255, 255, .06);
+      color: var(--mut);
+      transform: none;
+      box-shadow: none;
+    }
+    .cbtn.cbtn-soon:hover::before { opacity: 0; }
+    html[data-t="light"] .cbtn.cbtn-soon:hover {
+      border-color: #E5E7EB;
+      color: #374151;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+    }
+    /* Hover tooltip */
+    .sb-locked::after,
+    .cbtn-soon::after,
+    .ss-lock::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 8px;
+      z-index: 60;
+      width: max-content;
+      max-width: 210px;
+      background: #0B0E14;
+      border: 1px solid rgba(47, 107, 255, .35);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .45), 0 0 12px rgba(47, 107, 255, .12);
+      color: var(--wht2);
+      font-size: 11px;
+      font-weight: 500;
+      font-family: var(--font-ui);
+      line-height: 1.5;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 9px;
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      direction: ltr;
+    }
+    .sb-locked:hover::after,
+    .cbtn-soon:hover::after,
+    .ss-lock:hover::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @keyframes ssSoonModalIn {
+      from { opacity: 0; transform: translateY(10px) scale(.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
     .sb-new-btn {
       margin: 12px 0 24px;
       padding: 12px 16px;
@@ -3402,6 +3520,9 @@
     }
     html[data-t="light"] .sb-section-label{color:#9CA3AF;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;}
     html[data-t="light"] .sb-soon{background:#F3F4F6;border-color:#E5E7EB;color:#9CA3AF;}
+    html[data-t="light"] .sb-locked::after,
+    html[data-t="light"] .ss-lock::after,
+    html[data-t="light"] .cbtn-soon::after{background:#FFFFFF;color:#374151;border-color:rgba(47,107,255,.3);box-shadow:0 8px 24px rgba(0,0,0,.12),0 0 12px rgba(47,107,255,.1);}
     html[data-t="light"] .sb-footer{border-top-color:#E5E7EB;}
     html[data-t="light"] .sb-footer-link{color:#6B7280;}
     html[data-t="light"] .sb-footer-link:hover{background:#F3F4F6;color:#374151;}
@@ -3564,7 +3685,7 @@
           <path d="M36 60 L90 60" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
           <circle cx="98" cy="60" r="10" fill="#2F6BFF"/>
         </svg>
-        <span class="ub-wordmark">easy<span>TRACK</span></span>
+        <span class="ub-wordmark">Easy<span>Track</span></span>
       </a>
       <div class="ub-nav" style="display:none;">
         <a href="#" class="ub-nav-link active">Dashboard</a>
@@ -3975,7 +4096,7 @@
           </svg>
 
           <div>
-            <div class="g-wordmark">easy<em>TRACK</em></div>
+            <div class="g-wordmark">Easy<em>Track</em></div>
             <div class="g-badge">
               <span class="g-badge-line"></span>
               <span class="g-badge-text">Pixel Config v3</span>
@@ -3985,7 +4106,7 @@
         </div>
 
         <!-- Headline -->
-        <h1 class="gtitle">Pixel Setup كامل في دقيقتين — <em>مجاناً</em></h1>
+        <h1 class="gtitle">Pixel Setup كامل في دقايق</h1>
 
         <!-- Global error -->
         <div id="gGlobalErr" style="display:none;background:rgba(255,100,80,.07);border:1px solid rgba(255,100,80,.2);border-radius:9px;padding:9px 13px;margin-bottom:12px;font-size:12px;color:#ffb4ab;text-align:center;"></div>
@@ -4114,7 +4235,7 @@
             </div>
             <h2>حسابك قيد المراجعة</h2>
             <p>
-              شكراً لتسجيلك في <em>Easy Track</em><br>
+              شكراً لتسجيلك في <em>EasyTrack</em><br>
               تم إنشاء حسابك. راجع بريدك الإلكتروني:<br>
               <strong id="gate-pending-email" style="direction:ltr;display:inline-block;">—</strong>
             </p>
@@ -4131,7 +4252,7 @@
             <svg viewBox="0 0 24 24">
               <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
             </svg>
-            Easy Track
+            EasyTrack
           </a>
           <div class="gpriv">
             <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -4220,14 +4341,121 @@
       style="position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:149;opacity:0;pointer-events:none;transition:opacity .3s;">
     </div>
 
+    <!-- ═══ SERVER-SIDE TRACKING "COMING SOON" MODAL (UI-only temporary lock) ═══ -->
+    <div id="ssSoonModal" dir="ltr"
+      style="position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;padding:20px;">
+      <div onclick="closeSsSoonModal()"
+        style="position:absolute;inset:0;background:rgba(2,4,10,.72);backdrop-filter:blur(6px);"></div>
+      <div role="dialog" aria-modal="true" aria-labelledby="ssSoonTitle"
+        style="position:relative;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;background:var(--sur2);border:1px solid rgba(47,107,255,.28);border-radius:20px;box-shadow:0 0 0 1px rgba(47,107,255,.08),0 0 44px rgba(47,107,255,.16),0 24px 64px rgba(0,0,0,.5);animation:ssSoonModalIn .25s ease;">
+        <div style="height:3px;background:linear-gradient(90deg,transparent,var(--acc),transparent);border-radius:20px 20px 0 0;"></div>
+        <button onclick="closeSsSoonModal()" aria-label="Close"
+          style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:1px solid var(--bdr2);background:transparent;color:var(--mut);font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;"
+          onmouseover="this.style.color='var(--wht)';this.style.borderColor='var(--bdr)';"
+          onmouseout="this.style.color='var(--mut)';this.style.borderColor='var(--bdr2)';">✕</button>
+        <div style="padding:30px 30px 26px;">
+          <span
+            style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,var(--acc),#1A54F0);border:1px solid rgba(120,160,255,.6);border-radius:100px;padding:4px 12px;box-shadow:0 0 12px rgba(47,107,255,.45);margin-bottom:16px;">
+            Coming Soon
+          </span>
+          <h3 id="ssSoonTitle"
+            style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--wht);letter-spacing:-.4px;margin:0 0 10px;">
+            🚀 Managed Server-Side Tracking
+          </h3>
+          <p style="font-size:13px;color:var(--mut);line-height:1.6;margin:0 0 18px;">
+            This feature is currently under development and will be available soon.
+          </p>
+          <div
+            style="font-size:11px;font-weight:700;color:var(--wht2);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono);margin-bottom:10px;">
+            It will include:</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">cloud_sync</span>Automatic Cloud Run provisioning</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">dns</span>Managed Server GTM hosting</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">rocket_launch</span>One-click deployment</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">verified_user</span>Automatic SSL &amp; custom domains</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">history</span>Version management</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">monitor_heart</span>Health monitoring</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">undo</span>Rollback support</div>
+          </div>
+          <div
+            style="border-top:1px solid var(--bdr2);padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+            <div style="font-size:12px;color:var(--mut);line-height:1.5;flex:1;min-width:200px;">
+              Stay tuned — this feature will be released in an upcoming update.
+            </div>
+            <button onclick="closeSsSoonModal()"
+              style="background:var(--acc);border:none;border-radius:10px;padding:10px 22px;color:#fff;font-family:var(--font-display);font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(47,107,255,.3);flex-shrink:0;">
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MIXPANEL "COMING SOON" MODAL (UI-only temporary lock — integration code intact) ═══ -->
+    <div id="mixpanelSoonModal" dir="ltr"
+      style="position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;padding:20px;">
+      <div onclick="closeMixpanelSoonModal()"
+        style="position:absolute;inset:0;background:rgba(2,4,10,.72);backdrop-filter:blur(6px);"></div>
+      <div role="dialog" aria-modal="true" aria-labelledby="mixpanelSoonTitle"
+        style="position:relative;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;background:var(--sur2);border:1px solid rgba(47,107,255,.28);border-radius:20px;box-shadow:0 0 0 1px rgba(47,107,255,.08),0 0 44px rgba(47,107,255,.16),0 24px 64px rgba(0,0,0,.5);animation:ssSoonModalIn .25s ease;">
+        <div style="height:3px;background:linear-gradient(90deg,transparent,var(--acc),transparent);border-radius:20px 20px 0 0;"></div>
+        <button onclick="closeMixpanelSoonModal()" aria-label="Close"
+          style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:1px solid var(--bdr2);background:transparent;color:var(--mut);font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;"
+          onmouseover="this.style.color='var(--wht)';this.style.borderColor='var(--bdr)';"
+          onmouseout="this.style.color='var(--mut)';this.style.borderColor='var(--bdr2)';">✕</button>
+        <div style="padding:30px 30px 26px;">
+          <span
+            style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,var(--acc),#1A54F0);border:1px solid rgba(120,160,255,.6);border-radius:100px;padding:4px 12px;box-shadow:0 0 12px rgba(47,107,255,.45);margin-bottom:16px;">
+            Coming Soon
+          </span>
+          <h3 id="mixpanelSoonTitle"
+            style="display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--wht);letter-spacing:-.4px;margin:0 0 10px;">
+            <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;flex-shrink:0;" aria-hidden="true">
+              <rect width="50" height="50" rx="12" fill="#7856FF" />
+              <text x="25" y="34" text-anchor="middle" font-family="Arial" font-weight="900" font-size="26" fill="white">M</text>
+            </svg>
+            Mixpanel Integration
+          </h3>
+          <p style="font-size:13px;color:var(--mut);line-height:1.6;margin:0 0 18px;">
+            The Mixpanel integration is currently under development and will be available soon.
+          </p>
+          <div
+            style="font-size:11px;font-weight:700;color:var(--wht2);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono);margin-bottom:10px;">
+            It will support:</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">account_tree</span>Automatic event mapping</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">shopping_cart</span>eCommerce event tracking</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">fingerprint</span>User identity tracking</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">monitoring</span>Revenue and funnel analysis</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">inventory_2</span>Clean GTM configuration</div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--wht2);"><span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">settings_suggest</span>EasyTrac-managed setup</div>
+          </div>
+          <div
+            style="border-top:1px solid var(--bdr2);padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+            <div style="font-size:12px;color:var(--mut);line-height:1.5;flex:1;min-width:200px;">
+              Stay tuned — Mixpanel support is coming in an upcoming update.
+            </div>
+            <button onclick="closeMixpanelSoonModal()"
+              style="background:var(--acc);border:none;border-radius:10px;padding:10px 22px;color:#fff;font-family:var(--font-display);font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(47,107,255,.3);flex-shrink:0;">
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ SIDEBAR ═══ -->
     <aside id="et-sidebar">
       <div class="sb-project">
         <div class="sb-project-icon">
-          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dataset</span>
+          <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="et-logo-svg" aria-hidden="true">
+            <path d="M72 30 L36 30 L36 90 L72 90" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M36 60 L90 60" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="98" cy="60" r="10" fill="#2F6BFF"/>
+          </svg>
         </div>
         <div>
-          <div class="sb-project-name" id="sbUserName">Easy Track</div>
+          <div class="sb-project-name" id="sbUserName">EasyTrack</div>
           <div class="sb-project-sub" id="sbUserPlan">Pixel Config Generator</div>
         </div>
       </div>
@@ -4244,9 +4472,11 @@
           <span class="material-symbols-outlined" style="font-size:18px;">inventory_2</span>
           <span>GTM Container</span>
         </button>
-        <button class="sb-link" id="sbManagedServer" type="button" onclick="switchAppView('managedserver',this)">
+        <button class="sb-link sb-locked" id="sbManagedServer" type="button" onclick="switchAppView('managedserver',this)"
+          data-tooltip="Managed Server-Side Tracking is coming soon.">
           <span class="material-symbols-outlined" style="font-size:18px;">cloud_done</span>
           <span>Managed sGTM</span>
+          <span class="sb-soon-premium">Soon</span>
         </button>
         <button class="sb-link" id="sbProjects" type="button" onclick="switchAppView('projects',this)">
           <span class="material-symbols-outlined" style="font-size:18px;">folder_open</span>
@@ -4285,7 +4515,7 @@
         </button>
 
         <!-- Quick Guide Section -->
-        <div
+        <div class="sb-guide-label"
           style="padding:8px 12px 4px;font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--mut2);text-transform:uppercase;">
           Quick Guide</div>
         <button class="sb-footer-link" type="button" onclick="showCmsGuide('salla')">
@@ -4326,7 +4556,7 @@
                 style="font-size:24px;color:var(--acc);font-variation-settings:'FILL' 1;">person</span>
             </div>
             <div
-              style="position:absolute;bottom:0;right:0;width:12px;height:12px;background:var(--acc);border-radius:50%;border:2px solid #05050A;box-shadow:0 0 6px var(--acc);">
+              style="position:absolute;bottom:0;right:0;width:12px;height:12px;background:var(--acc);border-radius:50%;border:2px solid var(--et-card, #18181B);box-shadow:0 0 6px var(--acc);">
             </div>
           </div>
           <!-- Name + Plan -->
@@ -4362,9 +4592,7 @@
               coding required.</p>
             <div class="hero-btns">
               <button class="hero-btn-primary"
-                onclick="switchAppView('pixels', document.getElementById('sbPixels'))">Start Free</button>
-              <button class="hero-btn-ghost" onclick="switchAppView('pixels', document.getElementById('sbPixels'))">View
-                Demo</button>
+                onclick="switchAppView('pixels', document.getElementById('sbPixels'))">START</button>
             </div>
           </div>
         </div>
@@ -4434,56 +4662,6 @@
           </div>
         </div>
 
-        <!-- ── Ops Overview Drift Banner ── -->
-        <div id="ovOpsDriftBanner" style="display:none;align-items:center;gap:8px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--amber);margin-bottom:16px;">
-          <span class="material-symbols-outlined" style="font-size:16px;">warning</span>
-          <span>Manual GTM changes detected. Rollback safety may be affected. <button onclick="switchAppView('versions',document.getElementById('sbVersions'))" style="background:none;border:none;color:var(--amber);text-decoration:underline;cursor:pointer;font-size:13px;padding:0;">View Versions →</button></span>
-        </div>
-
-        <!-- ── Ops Overview Cards ── -->
-        <div class="ops-overview-row" id="ovOpsCards" style="display:none;">
-          <div class="ops-overview-card" onclick="switchAppView('health',document.getElementById('sbHealth'))">
-            <div class="label">Health Score</div>
-            <div class="val" id="ovOpsScore">—</div>
-            <div class="sub">/ 100</div>
-          </div>
-          <div class="ops-overview-card" onclick="switchAppView('versions',document.getElementById('sbVersions'))">
-            <div class="label">Current Version</div>
-            <div class="val" id="ovOpsCurVer">—</div>
-            <div class="sub" id="ovOpsCurVerSub">—</div>
-          </div>
-          <div class="ops-overview-card" onclick="switchAppView('deployments',document.getElementById('sbDeployments'))">
-            <div class="label">Last Deployment</div>
-            <div class="val" id="ovOpsLastDeploy">—</div>
-            <div class="sub" id="ovOpsLastDeploySub">—</div>
-          </div>
-          <div class="ops-overview-card" onclick="switchAppView('health',document.getElementById('sbHealth'))">
-            <div class="label">Last Event</div>
-            <div class="val" id="ovOpsLastEvent">—</div>
-            <div class="sub" id="ovOpsLastEventSub">—</div>
-          </div>
-          <div class="ops-overview-card" onclick="switchAppView('health',document.getElementById('sbHealth'))">
-            <div class="label">Drift Status</div>
-            <div class="val" id="ovOpsDrift">—</div>
-            <div class="sub">container integrity</div>
-          </div>
-          <div class="ops-overview-card" onclick="switchAppView('health',document.getElementById('sbHealth'))">
-            <div class="label">Active Alerts</div>
-            <div class="val" id="ovOpsAlerts">—</div>
-            <div class="sub">view in health</div>
-          </div>
-          <div class="ops-overview-card" onclick="switchAppView('deployments',document.getElementById('sbDeployments'))">
-            <div class="label">Deploys Today</div>
-            <div class="val" id="ovOpsDeploys">—</div>
-            <div class="sub">this calendar day</div>
-          </div>
-          <div class="ops-overview-card" onclick="switchAppView('versions',document.getElementById('sbVersions'))">
-            <div class="label">Rollback Count</div>
-            <div class="val" id="ovOpsRollbacks">—</div>
-            <div class="sub">all time</div>
-          </div>
-        </div>
-
         <!-- GTM Containers Status — always visible, loads on sign-in -->
         <div id="ovGtmStatus" style="background:var(--sur2);border:1px solid var(--bdr2);border-radius:16px;padding:20px;margin-bottom:24px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
@@ -4548,7 +4726,7 @@
                   style="flex:1;background:transparent;border:none;padding:11px 0;color:var(--wht);font-family:var(--font-ui);font-size:13px;outline:none;min-width:0;" />
               </div>
               <button id="hmScanBtn" onclick="hmScanSite()"
-                style="padding:11px 20px;border-radius:10px;border:none;background:var(--acc);color:#0a0a0a;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;">
+                style="padding:11px 20px;border-radius:10px;border:none;background:var(--acc);color:#ffffff;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;box-shadow:0 4px 12px rgba(47,107,255,.25);">
                 <span class="material-symbols-outlined" style="font-size:16px;">radar</span> Scan
               </button>
             </div>
@@ -4568,7 +4746,7 @@
               Managed sGTM
             </h2>
             <p style="font-size:13px;color:var(--mut);margin-top:4px;max-width:620px;">
-              Easy Track hosts and monitors your server-side GTM endpoint. Your dashboard only uses public wildcard URLs.
+              EasyTrack hosts and monitors your server-side GTM endpoint. Your dashboard only uses public wildcard URLs.
             </p>
           </div>
           <button id="msRefreshBtn" onclick="msLoadServer()"
@@ -5011,8 +5189,10 @@
       <!-- ══════ PIXEL CONFIG VIEW ══════ -->
       <div class="app-view" id="view-pixels">
 
-        <!-- ── Server Side Config Card ── -->
-        <div class="pc-ss-card" id="pc-ss-card">
+        <!-- ── Server Side Config Card (temporarily locked — coming soon) ── -->
+        <div class="pc-ss-card ss-lock" id="pc-ss-card" data-tooltip="Managed Server-Side Tracking is coming soon."
+          onclick="if (typeof SS_TRACKING_LOCKED !== 'undefined' && SS_TRACKING_LOCKED) { showSsSoonModal(); }">
+          <span class="sb-soon-premium">Soon</span>
           <div class="pc-ss-header">
             <span class="pc-ss-icon material-symbols-outlined" style="font-size:22px;color:var(--acc);">dns</span>
             <div class="pc-ss-title-wrap">
@@ -5260,8 +5440,11 @@
               Google Analytics 4
             </button>
 
-            <!-- Mixpanel — Active (Hybrid Client + Server with SHA-256 + external_id) -->
-            <button class="cbtn" data-val="mixpanel" style="position:relative;">
+            <!-- Mixpanel — TEMPORARILY LOCKED (coming soon). Full integration code is kept
+                 intact (event maps, tag builders, validators); to re-enable, remove the
+                 .cbtn-soon class + SOON chip here and flip MIXPANEL_LOCKED to false. -->
+            <button class="cbtn cbtn-soon" data-val="mixpanel" style="position:relative;" aria-disabled="true"
+              data-tooltip="Mixpanel integration is coming soon.">
               <div class="cchk">✓</div>
               <span class="cicon">
                 <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;">
@@ -5269,8 +5452,7 @@
                   <text x="25" y="34" text-anchor="middle" font-family="Arial" font-weight="900" font-size="26" fill="white">M</text>
                 </svg>
               </span>
-              Mixpanel
-              <span style="position:absolute;top:6px;right:6px;background:linear-gradient(135deg,#7856FF,#2F6BFF);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;letter-spacing:1px;">NEW</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;">Mixpanel<span class="ss-soon-chip">SOON</span></span>
             </button>
 
           </div>
@@ -5316,10 +5498,13 @@
             </button>
 
 
-            <button class="otab" id="tabSsGtm" onclick="oTab('ss-gtm',this)">
+            <!-- Server Container tab (temporarily locked — coming soon) -->
+            <button class="otab ss-lock" id="tabSsGtm" onclick="oTab('ss-gtm',this)"
+              data-tooltip="Managed Server-Side Tracking is coming soon.">
               <span class="material-symbols-outlined"
                 style="font-size:15px;font-variation-settings:'FILL' 1;">dns</span>
               Server Container
+              <span class="ss-soon-chip">Soon</span>
             </button>
 
             <button class="otab" id="tabGuide" onclick="oTab('guide',this)">
@@ -5427,22 +5612,6 @@
                 افتح الـ Server Container ←
               </button>
             </div>
-            <div class="cwrap">
-              <div class="ctbar">
-                <div class="ctdots">
-                  <div class="ctdot" style="background:#ff5f57"></div>
-                  <div class="ctdot" style="background:#febc2e"></div>
-                  <div class="ctdot" style="background:#28c840"></div>
-                </div>
-                <span class="clang">gtm-container.json</span>
-                <div class="ctacts">
-                  <button class="dlbtn" id="dlGtm">⬇️ تحميل</button>
-                  <button class="cpybtn" id="cpyGtm">نسخ</button>
-                </div>
-              </div>
-              <div class="cbody" id="gtmBody"></div>
-            </div>
-
           </div>
 
           <!-- pane-dl hidden (no tab) -->
@@ -5495,14 +5664,14 @@
 
             <div class="gtm-publish-title">
               <span class="material-symbols-outlined" style="color:var(--acc);font-size:20px;">auto_awesome</span>
-              Managed by Easy Track
+              Managed by EasyTrack
             </div>
 
             <!-- Info box -->
             <div class="gtm-info-box" style="margin-bottom:14px;">
               <span class="gtm-info-icon material-symbols-outlined" style="font-size:18px;">bolt</span>
               <div class="gtm-info-text">
-                هننشئ GTM Container تلقائياً في حساب Easy Track ونجهّزه بكل الـ tags والـ triggers. هترجعلك
+                هننشئ GTM Container تلقائياً في حساب EasyTrack ونجهّزه بكل الـ tags والـ triggers. هترجعلك
                 <strong>Container ID</strong> جاهز تلصقه على موقعك.
               </div>
             </div>
@@ -5534,10 +5703,12 @@
                 Create Web Container
               </button>
 
-              <!-- Web + Server -->
-              <button class="gtm-deploy-btn" id="mgdCreateServerBtn"
+              <!-- Web + Server (temporarily locked — coming soon) -->
+              <button class="gtm-deploy-btn ss-lock" id="mgdCreateServerBtn"
                 onclick="gtmManagedCreate('client_server')"
+                data-tooltip="Managed Server-Side Tracking is coming soon."
                 style="width:100%;font-size:12px;padding:11px 10px;gap:6px;">
+                <span class="sb-soon-premium">Soon</span>
                 <span class="material-symbols-outlined" style="font-size:16px;">dns</span>
                 Create Web + Server
               </button>
@@ -7286,7 +7457,51 @@
     // Cached GTM JSON string for sidebar view
     var _cachedGtmStr = null;
 
+    // ── Server-Side Tracking temporary UI lock ──
+    // Backend + views are intact; flip to false to re-enable Managed sGTM navigation.
+    var SS_TRACKING_LOCKED = true;
+    // Setup Guide trim: show only the "install the GTM code" steps (flip to false to restore full guide)
+    var GUIDE_GTM_CODE_ONLY = true;
+
+    // Mixpanel integration is temporarily locked (SOON). All Mixpanel code paths
+    // (event maps, tag builders, validators, health checks) are intact — flip to
+    // false and remove .cbtn-soon from the Mixpanel button to re-enable.
+    var MIXPANEL_LOCKED = true;
+
+    function showSsSoonModal() {
+      var m = document.getElementById('ssSoonModal');
+      if (m) m.style.display = 'flex';
+    }
+    function closeSsSoonModal() {
+      var m = document.getElementById('ssSoonModal');
+      if (m) m.style.display = 'none';
+    }
+    function showMixpanelSoonModal() {
+      var m = document.getElementById('mixpanelSoonModal');
+      if (m) m.style.display = 'flex';
+    }
+    function closeMixpanelSoonModal() {
+      var m = document.getElementById('mixpanelSoonModal');
+      if (m) m.style.display = 'none';
+    }
+    // While locked, keep 'mixpanel' out of the wizard state restored from saved
+    // sessions/projects so no Mixpanel setup fields or tags can be produced.
+    function stripLockedPlatforms() {
+      if (MIXPANEL_LOCKED && S && S.platforms && S.platforms.indexOf('mixpanel') !== -1) {
+        S.platforms = S.platforms.filter(function (p) { return p !== 'mixpanel'; });
+      }
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeSsSoonModal(); closeMixpanelSoonModal(); }
+    });
+
     function switchAppView(viewKey, btnEl) {
+      // Managed sGTM is temporarily locked — show the coming-soon modal instead of navigating
+      if (viewKey === 'managedserver' && SS_TRACKING_LOCKED) {
+        showSsSoonModal();
+        return;
+      }
+
       // Hide all views
       Object.values(APP_VIEWS).forEach(function (id) {
         var el = document.getElementById(id);
@@ -8162,12 +8377,6 @@
         + _pill('CMS', cms, '#6366f1')
         + _pill('Platforms', plats, '#0ea5e9')
         + _pill('Events', evCount + ' events', '#2F6BFF')
-        + '</div>'
-        + '<div class="cwrap">'
-        + '<div class="ctbar"><div class="ctdots"><div class="ctdot" style="background:#ff5f57"></div><div class="ctdot" style="background:#febc2e"></div><div class="ctdot" style="background:#28c840"></div></div>'
-        + '<span class="clang">gtm-container.json</span>'
-        + '<div class="ctacts"><button class="cpybtn" onclick="(function(){try{navigator.clipboard.writeText(document.getElementById(\'gtmSbBody\').textContent);}catch(e){}})()">نسخ</button></div></div>'
-        + '<div class="cbody" id="gtmSbBody" style="max-height:460px;overflow:auto;">' + _esc(jsonStr) + '</div>'
         + '</div>';
     }
 
@@ -8513,8 +8722,11 @@
       if (!btn) return;
       var val = btn.getAttribute('data-val');
       if (!val) return;
-      // ── SOON platforms: not activatable ──
-      if (btn.classList.contains('cbtn-soon')) return;
+      // ── SOON platforms: not activatable — show the coming-soon modal instead ──
+      if (btn.classList.contains('cbtn-soon')) {
+        if (val === 'mixpanel') showMixpanelSoonModal();
+        return;
+      }
       var idx = S.platforms.indexOf(val);
       if (idx === -1) { S.platforms.push(val); btn.classList.add('on'); }
       else { S.platforms.splice(idx, 1); btn.classList.remove('on'); }
@@ -8832,6 +9044,8 @@
     // ═══════════════════════════════════════════════════════════
 
     function pcSS_toggle() {
+      // Server-Side Tracking temporarily locked — show coming-soon modal instead
+      if (typeof SS_TRACKING_LOCKED !== 'undefined' && SS_TRACKING_LOCKED) { showSsSoonModal(); return; }
       _pcSS.enabled = !_pcSS.enabled;
       var btn  = document.getElementById('pc-ss-toggle-btn');
       var lbl  = document.getElementById('pc-ss-toggle-lbl');
@@ -9342,10 +9556,6 @@
         try { document.getElementById('guideSteps').innerHTML = buildGuide(); }
         catch (e) { console.error('buildGuide error:', e); }
 
-        try { document.getElementById('scoreContent').innerHTML = buildScore(); }
-        catch (e) { console.error('buildScore error:', e); }
-
-        try { buildHealthCheck(); } catch (e) { console.error('buildHealthCheck error:', e); }
         try { buildPlan(); } catch (e) { console.error('buildPlan error:', e); }
         try { buildSummary(); } catch (e) { console.error('buildSummary error:', e); }
 
@@ -12255,6 +12465,31 @@
       var html = '';
       var stepNum = 1;
 
+      // ── Trimmed guide: only "install the Google Tag Manager code" ──
+      // Full guide (import + per-platform + test) is kept below, gated off.
+      if (typeof GUIDE_GTM_CODE_ONLY !== 'undefined' && GUIDE_GTM_CODE_ONLY) {
+        var gg = cmsGuides[S.cms];
+        var gColor = gg ? gg.color : '#2F6BFF';
+        var gTitle = gg ? (gg.icon + ' ' + gg.title) : '📦 تركيب كود Google Tag Manager';
+        var gSteps = gg ? gg.steps.slice(0, 3) : [
+          { icon: 'code', title: 'حط كود GTM في موقعك', body: 'انسخ كود الـ GTM (سنيبت الـ &lt;head&gt;) من صفحة الـ Overview وحطه في أعلى الـ <code style="color:var(--acc);background:rgba(47,107,255,0.1);padding:1px 6px;border-radius:3px;">&lt;head&gt;</code> على كل صفحات الموقع.' }
+        ];
+        gSteps = gSteps.concat([
+          { icon: 'check_circle', title: 'جاهز!', body: 'بمجرد ما كود Google Tag Manager يظهر على متجرك، الـ Container المولّد هيشتغل تلقائياً على كل الصفحات.' }
+        ]);
+        html += '<div style="display:flex;align-items:center;gap:8px;background:rgba(47,107,255,.06);border:1px solid rgba(47,107,255,.2);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--wht2);">'
+          + '<span class="material-symbols-outlined" style="font-size:16px;color:var(--acc);">info</span>'
+          + '<span>كل المطلوب دلوقتي: تركيب كود Google Tag Manager في متجرك بعد ما يظهر — أي إعدادات إضافية بتتعمل تلقائياً من الـ Container.</span>'
+          + '</div>';
+        html += '<div style="background:' + gColor + '10;border:1px solid ' + gColor + '30;border-radius:16px;padding:16px 18px;margin-bottom:20px;">'
+          + '<div style="font-weight:800;font-size:15px;color:var(--wht);margin-bottom:12px;">' + gTitle + '</div>';
+        gSteps.forEach(function (s) {
+          html += renderStep(stepNum++, s, gColor);
+        });
+        html += '</div>';
+        return html;
+      }
+
       // CMS installation
       var cmsG = cmsGuides[S.cms];
       if (cmsG) {
@@ -12288,6 +12523,8 @@
     }
 
     // ===== BUILD SCORE =====
+    // Reserved for a future Score / Health Check UI.
+    // Currently not invoked because the related DOM panels were removed.
     function buildScore() {
       var platReqs = {
         meta: {
@@ -12454,6 +12691,8 @@
     }
 
     // ===== BUILD HEALTH CHECK =====
+    // Reserved for a future Score / Health Check UI.
+    // Currently not invoked because the related DOM panels were removed.
     function buildHealthCheck() {
       var platReqMap = {
         meta: {
@@ -12645,6 +12884,11 @@
     window.ETD_API_URL = 'https://easy-track-excel-api-production.up.railway.app';
 
     function oTab(id, btn) {
+      // Server Container tab is temporarily locked — show the coming-soon modal instead
+      if (id === 'ss-gtm' && typeof SS_TRACKING_LOCKED !== 'undefined' && SS_TRACKING_LOCKED) {
+        showSsSoonModal();
+        return;
+      }
       if (id === 'plan') buildTrackingPlan();
       if (id === 'health') { document.getElementById('healthResults').innerHTML = ''; }
       var tabs = document.querySelectorAll('.otab');
@@ -12755,7 +12999,7 @@
           } else if (r.isInPlan && r.found && r.match) {
             status = 'شغّال ✓'; statusColor = 'var(--grn)'; statusBg = 'rgba(52,211,153,.06)'; statusIcon = '✅';
           } else if (r.isInPlan && r.found && !r.match) {
-            status = 'موجود — ID مختلف'; statusColor = 'var(--gold)'; statusBg = 'rgba(232,184,75,.06)'; statusIcon = '⚠️';
+            status = 'موجود — ID مختلف'; statusColor = 'var(--gold)'; statusBg = 'rgba(47,107,255,.06)'; statusIcon = '⚠️';
           } else if (r.isInPlan && !r.found) {
             status = 'ناقص ❌'; statusColor = 'var(--red)'; statusBg = 'rgba(248,113,113,.06)'; statusIcon = '❌';
           } else if (!r.isInPlan && r.found) {
@@ -12790,7 +13034,7 @@
         var score = totalInPlan > 0 ? Math.round((totalOk / totalInPlan) * 100) : 0;
         var scoreColor = score >= 80 ? 'var(--grn)' : score >= 50 ? 'var(--gold)' : 'var(--red)';
 
-        h = '<div style="background:linear-gradient(135deg,rgba(232,184,75,.08),rgba(52,211,153,.04));border:1px solid rgba(232,184,75,.15);border-radius:16px;padding:16px 20px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;">'
+        h = '<div style="background:linear-gradient(135deg,rgba(47,107,255,.08),rgba(47,107,255,.03));border:1px solid rgba(47,107,255,.16);border-radius:16px;padding:16px 20px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;">'
           + '<div><div style="font-size:10px;color:var(--mut);font-family:monospace;letter-spacing:1px;text-transform:uppercase;">Health Score</div>'
           + '<div style="font-size:28px;font-weight:900;color:' + scoreColor + ';">' + score + '%</div></div>'
           + '<div><div style="font-size:10px;color:var(--mut);font-family:monospace;letter-spacing:1px;margin-bottom:2px;">✅ شغّال</div><div style="font-size:18px;font-weight:700;color:var(--grn);">' + totalOk + '</div></div>'
@@ -12885,7 +13129,7 @@
       var cmsName = S.cms ? (CMS[S.cms] ? CMS[S.cms].name : S.cms) : '';
       var html = '<div style="font-family:Cairo,sans-serif;direction:rtl;">';
       // Header
-      html += '<div style="background:#0b1628;border:1px solid rgba(232,184,75,.2);border-radius:14px;padding:20px;margin-bottom:14px;">';
+      html += '<div style="background:#111111;border:1px solid rgba(47,107,255,.2);border-radius:14px;padding:20px;margin-bottom:14px;">';
       html += '<div style="font-weight:900;font-size:18px;margin-bottom:6px;">' + escapeHtml(name) + '</div>';
       html += '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#5a7090;">';
       html += '<span>📅 ' + today + '</span><span>🛍 ' + cmsName + '</span>';
@@ -12897,15 +13141,15 @@
         html += '<div style="background:#0f1e35;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:10px;">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
         html += '<span style="font-weight:700;">' + pm.icon + ' ' + pm.name + '</span>';
-        html += '<span style="font-family:monospace;font-size:11px;color:#e8b84b;background:rgba(232,184,75,.1);padding:2px 8px;border-radius:5px;">' + escapeHtml(pid) + '</span>';
+        html += '<span style="font-family:monospace;font-size:11px;color:#2F6BFF;background:rgba(47,107,255,.1);padding:2px 8px;border-radius:5px;">' + escapeHtml(pid) + '</span>';
         html += '</div><table style="width:100%;border-collapse:collapse;font-size:12px;">';
         html += '<tr style="color:#5a7090;"><th style="text-align:right;padding:5px;">GA4 Event</th><th style="text-align:right;padding:5px;">Platform Event</th><th style="text-align:center;padding:5px;">Score</th></tr>';
         S.events.forEach(function (ev) {
           var mapped = PMAP[p] && PMAP[p][ev];
           html += '<tr style="border-top:1px solid rgba(255,255,255,.04);">';
           html += '<td style="padding:6px;font-family:monospace;font-size:11px;">' + ev + '</td>';
-          html += '<td style="padding:6px;color:' + (mapped ? '#0ecfb0' : '#f87171') + ';">' + (mapped || '—') + '</td>';
-          html += '<td style="padding:6px;text-align:center;color:#e8b84b;">' + (GA4[ev] ? GA4[ev].score : 0) + '</td>';
+          html += '<td style="padding:6px;color:' + (mapped ? '#22C55E' : '#f87171') + ';">' + (mapped || '—') + '</td>';
+          html += '<td style="padding:6px;text-align:center;color:#2F6BFF;">' + (GA4[ev] ? GA4[ev].score : 0) + '</td>';
           html += '</tr>';
         });
         html += '</table></div>';
@@ -13432,11 +13676,41 @@
         var ws = JSON.parse(raw);
         if (ws.cms) S.cms = ws.cms;
         if (ws.platforms && ws.platforms.length) S.platforms = ws.platforms;
+        stripLockedPlatforms();
         if (ws.events && ws.events.length) S.events = ws.events;
         if (ws.pixelIds && Object.keys(ws.pixelIds).length) S.pixelIds = ws.pixelIds;
         if (ws.lead && ws.lead.name) S.lead = ws.lead;
         return !!(ws.cms || (ws.platforms && ws.platforms.length));
       } catch(e) { return false; }
+    }
+
+    // Reconcile the wizard UI (CMS cards + platform grid + Next buttons) with the
+    // current S state. _restoreWizardState only refills S.* from sessionStorage —
+    // without this, the visible selections stay on their static defaults while
+    // S.platforms drives the Events/Pixel steps, so those steps show platforms the
+    // user never lit up in the Platform grid.
+    function _syncWizardUIFromState() {
+      try {
+        // CMS cards
+        var cmsBtns = document.querySelectorAll('#cmsGrid .cms-card');
+        for (var i = 0; i < cmsBtns.length; i++) {
+          cmsBtns[i].classList.toggle('on', cmsBtns[i].getAttribute('data-val') === S.cms);
+        }
+        var btn1 = document.getElementById('btn1');
+        if (btn1) btn1.disabled = !S.cms;
+
+        // Platform grid
+        var plats = S.platforms || [];
+        var platBtns = document.querySelectorAll('#platGrid .cbtn');
+        for (var j = 0; j < platBtns.length; j++) {
+          var v = platBtns[j].getAttribute('data-val');
+          // SOON/locked platforms can never be active
+          var active = !platBtns[j].classList.contains('cbtn-soon') && plats.indexOf(v) !== -1;
+          platBtns[j].classList.toggle('on', active);
+        }
+        var btn2 = document.getElementById('btn2');
+        if (btn2) btn2.disabled = plats.length === 0;
+      } catch(e) {}
     }
 
     // ── Firestore project store (write-through with localStorage cache) ──────
@@ -13527,13 +13801,14 @@
       if (!store) return;
       if (store.cms) S.cms = store.cms;
       if (store.platforms) S.platforms = store.platforms;
+      stripLockedPlatforms();
       if (store.events) S.events = store.events;
       if (store.pixelIds) S.pixelIds = store.pixelIds;
       if (store.lead) S.lead = store.lead;
       generate();
       var t = document.createElement('div');
       t.textContent = '⚡ تم تحميل: ' + store.name;
-      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0ecfb0;color:#05090f;padding:12px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;';
+      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#2F6BFF;color:#FFFFFF;padding:12px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;';
       document.body.appendChild(t);
       setTimeout(function () { t.remove(); }, 2500);
     }
@@ -13915,6 +14190,12 @@
       // mode = 'client' (web only) | 'client_server' (web + server)
       mode = mode || 'client';
       var _wantServer = (mode === 'client_server');
+
+      // Server-Side Tracking temporarily locked — web-only creation still works
+      if (_wantServer && typeof SS_TRACKING_LOCKED !== 'undefined' && SS_TRACKING_LOCKED) {
+        showSsSoonModal();
+        return;
+      }
 
       // 1. Preconditions
       if (typeof currentUser === 'undefined' || !currentUser || !currentUser.id) {
@@ -15755,6 +16036,7 @@
       // Restore state
       if (cfg.cms) S.cms = cfg.cms;
       if (cfg.platforms) S.platforms = cfg.platforms;
+      stripLockedPlatforms();
       if (cfg.events) S.events = cfg.events;
       if (cfg.platformEvents) S.platformEvents = cfg.platformEvents;
       if (cfg.pixelIds) S.pixelIds = cfg.pixelIds;
@@ -15770,7 +16052,7 @@
       // Show toast
       var toast = document.createElement('div');
       toast.textContent = '✅ تم تحميل المشروع: ' + (p.client_name || '');
-      toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0ecfb0;color:#05090f;padding:12px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;animation:pin .3s ease;';
+      toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#2F6BFF;color:#FFFFFF;padding:12px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;animation:pin .3s ease;';
       document.body.appendChild(toast);
       setTimeout(function () { toast.remove(); }, 3000);
     }
@@ -16062,6 +16344,7 @@
       var cfg = p.config;
       if (cfg.cms) S.cms = cfg.cms;
       if (cfg.platforms) S.platforms = cfg.platforms;
+      stripLockedPlatforms();
       if (cfg.events) S.events = cfg.events;
       if (cfg.platformEvents) S.platformEvents = cfg.platformEvents;
       if (cfg.pixelIds) S.pixelIds = cfg.pixelIds;
@@ -16070,7 +16353,7 @@
       generate();
       var t = document.createElement('div');
       t.textContent = '✅ ' + (p.client_name || 'المشروع') + ' اتحمل';
-      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0ecfb0;color:#05090f;padding:12px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;';
+      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#2F6BFF;color:#FFFFFF;padding:12px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;';
       document.body.appendChild(t);
       setTimeout(function () { t.remove(); }, 3000);
     }
@@ -16199,6 +16482,9 @@
         if (!_hadState) {
           S.lead = { name: user.name || '', phone: '', location: '', ts: new Date().toISOString() };
         }
+        // Reflect restored S.cms / S.platforms in the wizard UI so the visible
+        // selections match what the Events/Pixel steps are built from.
+        _syncWizardUIFromState();
         document.getElementById('s1').classList.add('on');
         updateProg(1);
         // Load projects from Firestore (async, updates list in background)
@@ -16213,7 +16499,7 @@
         if (typeof loadOpsOverviewCards === 'function') {
           setTimeout(loadOpsOverviewCards, 600);
         }
-        if (typeof msLoadServer === 'function') {
+        if (typeof msLoadServer === 'function' && !(typeof SS_TRACKING_LOCKED !== 'undefined' && SS_TRACKING_LOCKED)) {
           setTimeout(function () { try { msLoadServer(); } catch (_) {} }, 900);
         }
       }, 400);
@@ -16383,7 +16669,7 @@
 
         // Show toast
         var toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0ecfb0;color:#05090f;padding:14px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(14,207,176,.3);';
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#2F6BFF;color:#FFFFFF;padding:14px 20px;border-radius:12px;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(47,107,255,.3);';
         toast.innerHTML = '⚡ Extension: تم اكتشاف ' + matched.length + ' events من ' + (dl.cms || 'الموقع');
         document.body.appendChild(toast);
         setTimeout(function () { toast.remove(); }, 4000);
@@ -19230,7 +19516,90 @@
       70%  { transform:scale(1.7); opacity:0;  }
       100% { transform:scale(1.7); opacity:0;  }
     }
+
+    /* Unified EasyTrack premium design system */
+    :root{
+      --bg:#09090B;--sur:#18181B;--sur2:#111318;--sur3:#20232B;--sur4:#272A33;
+      --acc:#2F6BFF;--acc2:#1A54F0;--acc-dim:rgba(47,107,255,.10);--acc-glow:rgba(47,107,255,.24);
+      --wht:#FFFFFF;--wht2:#CBD5E1;--mut:#94A3B8;--mut2:#64748B;
+      --bdr:rgba(255,255,255,.08);--bdr2:rgba(255,255,255,.08);--bdr3:rgba(255,255,255,.05);
+      --gold:#2F6BFF;--gold2:#1A54F0;--gdim:rgba(47,107,255,.10);--gglow:rgba(47,107,255,.24);--teal:#2F6BFF;
+      --grn:#22C55E;--red:#F87171;--blu:#6B8FFF;--amber:#F59E0B;
+      --et-shadow-sm:0 1px 0 rgba(255,255,255,.04) inset,0 18px 50px rgba(0,0,0,.24);
+      --et-shadow-md:0 1px 0 rgba(255,255,255,.05) inset,0 28px 80px rgba(0,0,0,.34);
+      --et-shadow-light:0 1px 2px rgba(15,23,42,.06),0 12px 34px rgba(15,23,42,.07);
+    }
+    body{background:var(--bg);color:var(--mut);}
+    body::before{background:linear-gradient(180deg,rgba(47,107,255,.06),transparent 42%),radial-gradient(ellipse 60% 40% at 80% 0%,rgba(47,107,255,.08),transparent 60%);}
+    body::after{background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:72px 72px;}
+    .et-logo-svg{color:#FFFFFF;}
+    .ub-wordmark,.g-wordmark{font-family:var(--font-display);font-weight:900;letter-spacing:-.35px;text-transform:none;color:var(--wht);}
+    .ub-wordmark span,.g-wordmark em{color:#2F6BFF;font-style:normal;}
+    #userBar{background:rgba(10,10,10,.88);border-bottom:1px solid var(--bdr);backdrop-filter:blur(20px) saturate(160%);box-shadow:0 1px 0 rgba(255,255,255,.04);}
+    #userBar .ub-logo{background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
+    #userBar .ub-logo:hover{background:rgba(47,107,255,.08)!important;border-color:rgba(47,107,255,.24)!important;}
+    #gate::before{background:rgba(10,10,10,.94);}
+    .gbox,#overviewHero,.panel,.pc-ss-card,.cms-card,.cbtn,.ptrack,.gcard,#limitBanner,.ov-pixel-card,.ov-recent-card,.ov-stat-card,.gtm-publish-panel,.gtm-stepper,.ops-table-wrap,.ops-card,.ops-metric-card,.pc-ss-acc,.pc-ss-ga4-row,.pc-ss-input,.gtm-conn-status,.gtm-select,.finput,.gate-tabs,.infonote,.pc-ss-body{
+      background:var(--sur);border-color:var(--bdr);box-shadow:var(--et-shadow-sm);
+    }
+    .panel,#overviewHero{background:var(--sur);}
+    #overviewHero{background-image:linear-gradient(180deg,rgba(47,107,255,.07),transparent);}
+    #overviewHero .hero-bg{display:none;}
+    .main{max-width:1040px;}
+    .hdr h1,#overviewHero h1,.ptitle,.gtitle,.ov-section-title h3,.ov-pixel-name,.ov-recent-title,.gtm-publish-title,.ops-page-title,.ops-metric-val,.pc-ss-title,.sb-project-name,.dp-title{color:var(--wht);}
+    .hdr p,#overviewHero p,.psub,.gsub,.ov-pixel-id,.ov-recent-time,.gtm-info-text,.pc-ss-sub,.pc-ss-hint,.ops-page-sub,.ops-metric-label,.sb-project-sub{color:var(--mut);}
+    .cbtn:hover,.cms-card:hover,.ov-pixel-card:hover,.pc-ss-card.ss-on,.ops-card:hover{border-color:rgba(47,107,255,.28);box-shadow:var(--et-shadow-md);transform:translateY(-2px);}
+    .gcta,.hero-btn-primary,.dp-new-btn,.gtm-deploy-btn.ready,.gate-tab.on,.pcirc.done,.btn-primary,.pc-ss-toggle.on::after{background:#2F6BFF;color:#FFFFFF;box-shadow:0 10px 28px rgba(47,107,255,.28);}
+    .gcta:hover,.hero-btn-primary:hover,.dp-new-btn:hover,.gtm-deploy-btn.ready:hover{background:#1A54F0;box-shadow:0 14px 36px rgba(47,107,255,.34);}
+    .hero-btn-ghost,.gtm-connect-btn,.brst,.pix-clear-btn,.pc-ss-toggle,.ar-en-btn{background:transparent;border-color:var(--bdr);color:var(--mut);}
+    .hero-btn-ghost:hover,.gtm-connect-btn:hover,.ar-en-btn:hover{background:#20232B;color:var(--wht);}
+    input,select,textarea,.finput,.pc-ss-input,.gtm-select,.ops-search,.ops-select{background:var(--sur2)!important;border-color:var(--bdr)!important;color:var(--wht)!important;color-scheme:dark;}
+    input:focus,select:focus,textarea:focus,.finput:focus,.pc-ss-input:focus,.gtm-select:focus,.ops-search:focus,.ops-select:focus{border-color:rgba(47,107,255,.55)!important;box-shadow:0 0 0 3px rgba(47,107,255,.12)!important;}
+    .pcirc.on,.cbtn.on,.cms-card.selected,.pc-ss-ev-chip.on,.ga4-client-ev-chip.on{background:rgba(47,107,255,.10);border-color:rgba(47,107,255,.44);color:#2F6BFF;box-shadow:0 0 0 1px rgba(47,107,255,.12);}
+    .pcon,.gtm-step-line,.ov-pixel-bar,.health-bar-bg{background:rgba(255,255,255,.08);}
+    .ops-table thead tr{background:var(--sur2);}
+    .ops-table th{color:var(--mut);border-bottom-color:var(--bdr);}
+    .ops-table td{color:var(--wht2);border-bottom-color:rgba(255,255,255,.06);}
+    .ops-table tbody tr:hover td{background:rgba(47,107,255,.04);}
+    .ops-badge-green,.ov-pixel-badge.active{background:rgba(34,197,94,.10);color:#22C55E;border:1px solid rgba(34,197,94,.20);}
+    .ops-badge-blue,.plan-badge{background:rgba(47,107,255,.10);color:#2F6BFF;border:1px solid rgba(47,107,255,.22);}
+    .ops-badge-amber{background:rgba(245,158,11,.10);color:#F59E0B;border:1px solid rgba(245,158,11,.22);}
+    .ops-badge-red{background:rgba(248,113,113,.10);color:#F87171;border:1px solid rgba(248,113,113,.22);}
+    #et-sidebar,#dashPanel,#settingsPanel,.ops-drawer-inner{background:var(--sur2);border-color:var(--bdr);box-shadow:var(--et-shadow-md);}
+    .sb-link{color:var(--mut);border-radius:10px;}
+    .sb-link:hover{background:rgba(255,255,255,.04);color:var(--wht);}
+    .sb-link.active{background:rgba(47,107,255,.10);color:#2F6BFF;}
+    html[data-t="light"]{
+      --bg:#F5F7FB;--sur:#FFFFFF;--sur2:#FFFFFF;--sur3:#F1F5F9;--sur4:#E2E8F0;
+      --wht:#111827;--wht2:#475569;--mut:#475569;--mut2:#64748B;
+      --bdr:#E2E8F0;--bdr2:#E2E8F0;--bdr3:#F1F5F9;
+    }
+    html[data-t="light"] body{background:#F5F7FB;color:#475569;}
+    html[data-t="light"] body::before{background:linear-gradient(180deg,rgba(47,107,255,.06),transparent 42%);}
+    html[data-t="light"] body::after{background-image:linear-gradient(rgba(17,17,17,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(17,17,17,.035) 1px,transparent 1px);}
+    html[data-t="light"] .et-logo-svg{color:#0A0A0A;}
+    html[data-t="light"] #userBar{background:rgba(255,255,255,.94);border-bottom-color:#E2E8F0;box-shadow:0 1px 0 rgba(15,23,42,.06);}
+    html[data-t="light"] .gbox,html[data-t="light"] #overviewHero,html[data-t="light"] .panel,html[data-t="light"] .pc-ss-card,html[data-t="light"] .cms-card,html[data-t="light"] .cbtn,html[data-t="light"] .ptrack,html[data-t="light"] .gcard,html[data-t="light"] #limitBanner,html[data-t="light"] .ov-pixel-card,html[data-t="light"] .ov-recent-card,html[data-t="light"] .ov-stat-card,html[data-t="light"] .gtm-publish-panel,html[data-t="light"] .gtm-stepper,html[data-t="light"] .ops-table-wrap,html[data-t="light"] .ops-card,html[data-t="light"] .ops-metric-card,html[data-t="light"] .pc-ss-acc{background:#FFFFFF;border-color:#E2E8F0;box-shadow:var(--et-shadow-light);}
+    html[data-t="light"] #et-sidebar,html[data-t="light"] #dashPanel,html[data-t="light"] #settingsPanel,html[data-t="light"] .ops-drawer-inner{background:#FFFFFF;border-color:#E2E8F0;box-shadow:var(--et-shadow-light);}
+    html[data-t="light"] input,html[data-t="light"] select,html[data-t="light"] textarea,html[data-t="light"] .finput,html[data-t="light"] .pc-ss-input,html[data-t="light"] .gtm-select,html[data-t="light"] .ops-search,html[data-t="light"] .ops-select{background:#FFFFFF!important;border-color:#E2E8F0!important;color:#111827!important;color-scheme:light;}
+    html[data-t="light"] .ops-table thead tr{background:#F5F7FB;}
+    html[data-t="light"] .ops-table td{color:#475569;border-bottom-color:#E2E8F0;}
+    @media(max-width:760px){
+      #userBar{padding:10px 14px;gap:10px;flex-wrap:wrap;}
+      #userBar .ub-left{gap:12px;}
+      #userBar .ub-right{gap:8px;}
+      .main{padding:36px 16px 80px;}
+      .ptrack{overflow-x:auto;justify-content:flex-start;}
+      .panel,#overviewHero{padding:22px;border-radius:18px;}
+      .cgrid,.cms-grid,.ov-pixels-grid,#overviewBento.show,.ops-metric-row{grid-template-columns:1fr;}
+      .hero-btns{flex-direction:column;align-items:stretch!important;}
+      .hero-btn-primary,.hero-btn-ghost{width:100%;}
+      .ops-table-wrap{overflow:auto;}
+      .ops-table{min-width:720px;}
+    }
   </style>
+
+  <link rel="stylesheet" href="easytrack-design-system.css"/>
 
 </body>
 </html>

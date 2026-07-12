@@ -243,15 +243,22 @@ const provisionQueue = (function createProvisionQueueSingleton() {
 // We print exactly which vars are missing and which routes that breaks. Values
 // are never logged.
 (function envCheck() {
-  const REQUIRED = [
+  // CRITICAL vars abort a production boot when absent (deploy-time mistake, not
+  // a transient outage). RECOMMENDED vars only warn — they gate newer optional
+  // features and may legitimately be unset on older deployments.
+  const CRITICAL = [
     { key: 'GTM_SA_KEY_JSON',      breaks: '/api/managed/* and /api/ss/create-containers (GTM provisioning)' },
     { key: 'GTM_ACCOUNT_ID',       breaks: '/api/managed/* and /api/ss/create-containers (GTM provisioning)' },
     { key: 'FIREBASE_SA_KEY_JSON', breaks: '/api/ss/* auth + ALL job storage (jobs are Firestore-backed)' },
     { key: 'MASTER_ENCRYPTION_KEY',breaks: '/api/ss/save-config (token encryption)' },
+  ];
+  const RECOMMENDED = [
     { key: 'API_KEY_SECRET',       breaks: '/api/v1/clients/:id/api-keys (API key generation + HMAC verification)' },
     { key: 'BEACON_SECRET',        breaks: '/api/v1/internal/beacon (sGTM event presence beacons — HMAC validation)' },
   ];
-  const missing = REQUIRED.filter(r => !((process.env[r.key] || '').trim()));
+  const missingCritical    = CRITICAL.filter(r => !((process.env[r.key] || '').trim()));
+  const missingRecommended = RECOMMENDED.filter(r => !((process.env[r.key] || '').trim()));
+  const missing = missingCritical.concat(missingRecommended);
   if (missing.length) {
     console.warn('');
     console.warn('⚠️  STARTUP WARNING: missing required environment variables:');
@@ -261,6 +268,18 @@ const provisionQueue = (function createProvisionQueueSingleton() {
     console.warn('');
   } else {
     console.log('✓ All required environment variables are set.');
+  }
+  // Fail-fast in production: a container missing its core secrets can only serve
+  // 503s, so exit with a clear message instead of limping. ALLOW_DEGRADED_START=1
+  // is the emergency escape hatch (e.g. bring the container up to debug).
+  const isProduction = process.env.NODE_ENV === 'production' ||
+                       !!process.env.K_SERVICE ||               // Cloud Run
+                       !!process.env.RAILWAY_ENVIRONMENT;       // Railway
+  if (missingCritical.length && isProduction && process.env.ALLOW_DEGRADED_START !== '1') {
+    console.error('✖ FATAL: refusing to start in production without: ' +
+      missingCritical.map(r => r.key).join(', '));
+    console.error('  Set the variables above, or set ALLOW_DEGRADED_START=1 to boot anyway.');
+    process.exit(1);
   }
 })();
 
@@ -4565,9 +4584,13 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const cacheControl = entry.isHtml
-      ? 'no-cache'                                   // HTML: always revalidate via ETag
-      : 'public, max-age=31536000, immutable';       // assets: cache hard (content-hashed via ETag)
+    // HTML + CSS revalidate via ETag on every load: their filenames are NOT
+    // content-hashed, so "immutable" would pin users to a stale stylesheet for
+    // a year after a redeploy. A 304 costs nothing (in-memory cache). Images
+    // and fonts effectively never change, so they stay immutable.
+    const cacheControl = (entry.isHtml || entry.ext === '.css')
+      ? 'no-cache'
+      : 'public, max-age=31536000, immutable';
 
     // Conditional request — client already holds this exact content → 304.
     if (req.headers['if-none-match'] === entry.etag) {
