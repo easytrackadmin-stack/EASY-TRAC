@@ -92,6 +92,25 @@ const TOKEN_PATH = '/token';
 const GTM_HOST = 'tagmanager.googleapis.com';
 const API_BASE = '/tagmanager/v2';
 
+// ── PEM repair ──────────────────────────────────────────────────────────────
+// Inlined (deploy ships only existing tracked files) — repairs a private_key no
+// matter how the env var mangled its newlines: literal "\n", CRLF, or newlines
+// collapsed to spaces (which the old \n-replace couldn't fix). Reconstructs the
+// PEM body when the armor markers aren't on their own lines.
+const _PEM_RE = /-----BEGIN ((?:RSA |EC )?PRIVATE KEY)-----([\s\S]*?)-----END \1-----/;
+function normalizePrivateKey(key) {
+  if (typeof key !== 'string') return key;
+  let k = key.trim().replace(/^["']|["']$/g, '');
+  k = k.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
+  k = k.replace(/\r\n?/g, '\n');
+  const m = k.match(_PEM_RE);
+  if (!m) return k;
+  const label   = m[1];
+  const body    = m[2].replace(/\s+/g, '');
+  const wrapped = body.match(/.{1,64}/g) || [];
+  return '-----BEGIN ' + label + '-----\n' + wrapped.join('\n') + '\n-----END ' + label + '-----\n';
+}
+
 // ── Load & validate the service-account credentials ─────────────────────────
 let _sa = null;
 function getSA() {
@@ -103,8 +122,8 @@ function getSA() {
   if (!_sa.client_email || !_sa.private_key) {
     throw new Error('GTM_SA_KEY_JSON is missing client_email or private_key');
   }
-  // Railway/env vars store literal \n; restore real newlines so Node crypto can parse the PEM.
-  _sa.private_key = _sa.private_key.replace(/\\n/g, '\n');
+  // Railway/env vars mangle the PEM newlines; restore them so Node crypto can parse it.
+  _sa.private_key = normalizePrivateKey(_sa.private_key);
   return _sa;
 }
 

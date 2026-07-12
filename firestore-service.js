@@ -20,6 +20,39 @@ try { admin = require('firebase-admin'); } catch (_) { /* lazy-handled below */ 
 let _db           = null;
 let _initError    = null;
 
+// ── PEM repair ────────────────────────────────────────────────────────────────
+// Inlined (NOT a separate module) because the deploy ships only existing tracked
+// files — same rationale as the timeout transport in gtm-service.js. Repairs a
+// service-account private_key regardless of how the env var mangled its newlines:
+// literal "\n", CRLF, or (the case the old \n-replace couldn't fix) newlines
+// collapsed to spaces. node-forge inside admin.credential.cert() otherwise throws
+// "Invalid PEM formatted message". Reconstruction pulls the base64 body from
+// between the BEGIN/END markers, strips all whitespace, and re-wraps at 64 cols.
+const _PEM_RE = /-----BEGIN ((?:RSA |EC )?PRIVATE KEY)-----([\s\S]*?)-----END \1-----/;
+function normalizePrivateKey(key) {
+  if (typeof key !== 'string') return key;
+  let k = key.trim().replace(/^["']|["']$/g, '');
+  k = k.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
+  k = k.replace(/\r\n?/g, '\n');
+  const m = k.match(_PEM_RE);
+  if (!m) return k;
+  const label   = m[1];
+  const body    = m[2].replace(/\s+/g, '');
+  const wrapped = body.match(/.{1,64}/g) || [];
+  return '-----BEGIN ' + label + '-----\n' + wrapped.join('\n') + '\n-----END ' + label + '-----\n';
+}
+// Non-leaking shape summary for diagnostics — never returns key material.
+function describePrivateKey(key) {
+  if (typeof key !== 'string') return 'type=' + typeof key;
+  return [
+    'len=' + key.length,
+    'begin=' + /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/.test(key),
+    'end='   + /-----END (?:RSA |EC )?PRIVATE KEY-----/.test(key),
+    'realNewlines='    + (key.match(/\n/g)  || []).length,
+    'literalNewlines=' + (key.match(/\\n/g) || []).length,
+  ].join(' ');
+}
+
 function isConfigured() {
   return !!process.env.FIREBASE_SA_KEY_JSON && !!admin;
 }
@@ -38,7 +71,10 @@ function init() {
   let sa;
   try { sa = JSON.parse(raw); }
   catch (e) { _initError = new Error('FIREBASE_SA_KEY_JSON is not valid JSON: ' + e.message); return; }
-  if (sa.private_key) sa.private_key = sa.private_key.replace(/\\n/g, '\n');
+  // Repair the private_key regardless of how the env var mangled its newlines
+  // (literal \n, CRLF, or newlines collapsed to spaces). node-forge inside
+  // admin.credential.cert() otherwise throws "Invalid PEM formatted message".
+  if (sa.private_key) sa.private_key = normalizePrivateKey(sa.private_key);
 
   try {
     if (!admin.apps.length) {
@@ -55,7 +91,16 @@ function init() {
     // must run before any read/write and only once; this is that point.
     try { _db.settings({ ignoreUndefinedProperties: true }); } catch (_) { /* already configured */ }
   } catch (e) {
-    _initError = e;
+    // Surface WHY the key was rejected without leaking key material — turns the
+    // opaque "Invalid PEM formatted message" into an actionable diagnostic.
+    if (/PEM|private key/i.test(e.message)) {
+      _initError = new Error(
+        e.message + ' [FIREBASE_SA_KEY_JSON private_key ' +
+        describePrivateKey(sa && sa.private_key) + ']'
+      );
+    } else {
+      _initError = e;
+    }
   }
 }
 
