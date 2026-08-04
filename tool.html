@@ -2890,11 +2890,11 @@
     /* ══ EASY TRACK SIDEBAR ══════════════════════════════════════════ */
     #et-sidebar {
       position: fixed;
-      top: 0;
+      top: 60px;
       right: 0;
       left: auto;
       width: 256px;
-      height: 100vh;
+      height: calc(100vh - 60px);
       background: #05050A;
       border-left: 1px solid rgba(255, 255, 255, 0.05);
       z-index: 100;
@@ -4458,18 +4458,9 @@
 
     <!-- ═══ SIDEBAR ═══ -->
     <aside id="et-sidebar">
-      <div class="sb-project">
-        <div class="sb-project-icon">
-          <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="et-logo-svg" aria-hidden="true">
-            <path d="M72 30 L36 30 L36 90 L72 90" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M36 60 L90 60" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
-            <circle cx="98" cy="60" r="10" fill="#2F6BFF"/>
-          </svg>
-        </div>
-        <div>
-          <div class="sb-project-name" id="sbUserName">EasyTrack</div>
-          <div class="sb-project-sub" id="sbUserPlan">Pixel Config Generator</div>
-        </div>
+      <div class="sb-project" style="display:none;">
+        <div id="sbUserName"></div>
+        <div id="sbUserPlan"></div>
       </div>
       <nav class="sb-nav">
         <button class="sb-link active" id="sbOverview" type="button" onclick="switchAppView('overview',this)">
@@ -4594,18 +4585,44 @@
           </button>
         </div>
 
-        <!-- Hero Section -->
-        <div id="overviewHero">
-          <div class="hero-bg"></div>
-          <div class="hero-body">
-            <span class="hero-badge">Automation Engine v3.4</span>
-            <h1>Setup your tracking pixels in <em>minutes</em>, not hours</h1>
-            <p>Streamline your event tracking across Meta, TikTok, and Google with our one-click GTM deployment. No
-              coding required.</p>
-            <div class="hero-btns">
-              <button class="hero-btn-primary"
-                onclick="switchAppView('pixels', document.getElementById('sbPixels'))">START</button>
+        <!-- Operational Status — is tracking configured? which platforms are active? what's next? -->
+        <div id="ovGtmStatus" style="background:var(--sur2);border:1px solid var(--bdr2);border-radius:16px;padding:20px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <span class="material-symbols-outlined" style="font-size:17px;color:var(--acc);">code_blocks</span>
+            <span style="font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--wht);">GTM Snippets</span>
+          </div>
+          <!-- Web + Server GTM IDs -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+            <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:12px;">
+              <div style="font-size:10px;color:var(--mut);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.8px;">WEB GTM (CLIENT-SIDE)</div>
+              <div id="ovWebGtmId" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--wht);">—</div>
+              <div id="ovWebGtmBadge" style="font-size:10px;margin-top:4px;color:var(--mut);">غير مُعدّ</div>
             </div>
+            <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:12px;">
+              <div style="font-size:10px;color:var(--mut);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.8px;">SERVER GTM (SERVER-SIDE)</div>
+              <div id="ovServerGtmId" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--wht);">—</div>
+              <div id="ovServerGtmBadge" style="font-size:10px;margin-top:4px;color:var(--mut);">غير مُعدّ</div>
+            </div>
+          </div>
+          <!-- Web Snippet (shown when available) -->
+          <div id="ovWebSnippetWrap" style="display:none;margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:600;color:var(--wht2);margin-bottom:4px;">Web GTM Snippet (للـ &lt;head&gt;):</div>
+            <div style="position:relative;">
+              <pre id="ovWebSnippetCode" style="background:#080b10;border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-size:10px;color:#a8d8a8;overflow-x:auto;max-height:90px;overflow-y:auto;margin:0;white-space:pre-wrap;word-break:break-all;"></pre>
+              <button onclick="ovCopySnippet('head')" style="position:absolute;top:6px;left:6px;background:rgba(47,107,255,.1);border:1px solid rgba(47,107,255,.2);border-radius:5px;padding:2px 8px;font-size:9px;font-weight:700;color:var(--acc);cursor:pointer;font-family:var(--font-ui);">📋 نسخ</button>
+            </div>
+          </div>
+          <!-- Active Platforms grid -->
+          <div id="ovActivePlatforms" style="display:none;">
+            <div style="font-size:11px;font-weight:600;color:var(--wht2);margin-bottom:8px;">المنصات الشغالة:</div>
+            <div id="ovActivePlatGrid" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          </div>
+          <!-- Placeholder when nothing configured yet -->
+          <div id="ovGtmPlaceholder" style="text-align:center;padding:16px 0;color:var(--mut);font-size:12px;">
+            <span class="material-symbols-outlined" style="font-size:28px;display:block;margin-bottom:6px;opacity:.4;">dns</span>
+            لم يتم إعداد أي GTM Container بعد —
+            <button onclick="switchAppView('pixels', document.getElementById('sbPixels'))"
+              style="display:block;margin:12px auto 0;padding:9px 18px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-family:var(--font-display);font-weight:800;font-size:12.5px;cursor:pointer;">ابدأ إعداد التتبع →</button>
           </div>
         </div>
 
@@ -4673,47 +4690,6 @@
             </div>
           </div>
         </div>
-
-        <!-- GTM Containers Status — always visible, loads on sign-in -->
-        <div id="ovGtmStatus" style="background:var(--sur2);border:1px solid var(--bdr2);border-radius:16px;padding:20px;margin-bottom:24px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-            <span class="material-symbols-outlined" style="font-size:17px;color:var(--acc);">code_blocks</span>
-            <span style="font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--wht);">GTM Snippets</span>
-          </div>
-          <!-- Web + Server GTM IDs -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-            <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:12px;">
-              <div style="font-size:10px;color:var(--mut);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.8px;">WEB GTM (CLIENT-SIDE)</div>
-              <div id="ovWebGtmId" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--wht);">—</div>
-              <div id="ovWebGtmBadge" style="font-size:10px;margin-top:4px;color:var(--mut);">غير مُعدّ</div>
-            </div>
-            <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:12px;">
-              <div style="font-size:10px;color:var(--mut);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.8px;">SERVER GTM (SERVER-SIDE)</div>
-              <div id="ovServerGtmId" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--wht);">—</div>
-              <div id="ovServerGtmBadge" style="font-size:10px;margin-top:4px;color:var(--mut);">غير مُعدّ</div>
-            </div>
-          </div>
-          <!-- Web Snippet (shown when available) -->
-          <div id="ovWebSnippetWrap" style="display:none;margin-bottom:12px;">
-            <div style="font-size:11px;font-weight:600;color:var(--wht2);margin-bottom:4px;">Web GTM Snippet (للـ &lt;head&gt;):</div>
-            <div style="position:relative;">
-              <pre id="ovWebSnippetCode" style="background:#080b10;border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-size:10px;color:#a8d8a8;overflow-x:auto;max-height:90px;overflow-y:auto;margin:0;white-space:pre-wrap;word-break:break-all;"></pre>
-              <button onclick="ovCopySnippet('head')" style="position:absolute;top:6px;left:6px;background:rgba(47,107,255,.1);border:1px solid rgba(47,107,255,.2);border-radius:5px;padding:2px 8px;font-size:9px;font-weight:700;color:var(--acc);cursor:pointer;font-family:var(--font-ui);">📋 نسخ</button>
-            </div>
-          </div>
-          <!-- Active Platforms grid -->
-          <div id="ovActivePlatforms" style="display:none;">
-            <div style="font-size:11px;font-weight:600;color:var(--wht2);margin-bottom:8px;">المنصات الشغالة:</div>
-            <div id="ovActivePlatGrid" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-          </div>
-          <!-- Placeholder when nothing configured yet -->
-          <div id="ovGtmPlaceholder" style="text-align:center;padding:16px 0;color:var(--mut);font-size:12px;">
-            <span class="material-symbols-outlined" style="font-size:28px;display:block;margin-bottom:6px;opacity:.4;">dns</span>
-            لم يتم إعداد أي GTM Container بعد —
-            
-          </div>
-        </div>
-
 
         <!-- Pixel Scanner -->
         <div style="background:var(--sur2);border:1px solid var(--bdr2);border-radius:16px;overflow:hidden;margin-bottom:24px;">
