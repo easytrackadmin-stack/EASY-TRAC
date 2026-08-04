@@ -204,6 +204,7 @@ test('ingest/read endpoint flags default off and gate routes before auth/storage
   assert.match(source, /EVENT_OBSERVABILITY_READ_ENABLED === '1'/);
   assert.match(source, /if \(!eventIngestEnabled\).*503/s);
   assert.match(source, /if \(!eventReadEnabled\).*503/s);
+  assert.match(source, /telemetryEnabled: eventIngestEnabled/, 'summary reports ingestion state explicitly instead of inferring it from read access');
 });
 
 test('event-failure ingestion is hard-disabled (501) independent of any rollout flag', () => {
@@ -216,4 +217,23 @@ test('event-failure ingestion is hard-disabled (501) independent of any rollout 
   // The route must appear before the telemetry route so it short-circuits first.
   const telemetryIdx = source.indexOf("v1Path === '/api/v1/internal/event-telemetry'");
   assert.ok(idx < telemetryIdx);
+});
+
+test('Phase 2.1 debug sampling does not change Level 1 aggregate ingestion', () => {
+  const aggregate = svc.buildAggregateWrite('client-a', {
+    eventName: 'purchase', destination: 'ga4', accepted: 1,
+  }, new Date('2026-08-04T12:01:00Z'), () => 2);
+  assert.equal(aggregate.shard.accepted, 1);
+  assert.equal(aggregate.daily.accepted, 1);
+
+  const cfg = buildServerConfig({
+    ga4MeasurementId: 'G-X', events: ['purchase'],
+    eventObservabilityUrl: 'https://obs.example', eventObservabilityApiKey: 'key', etClientId: 'synthetic-a',
+    eventObservabilityRolloutEnabled: true,
+    eventDebugSamplingRolloutEnabled: true,
+    eventDebugSamplingSyntheticTenant: true,
+  });
+  const telemetry = cfg.containerVersion.tag.find(tag => tag.name === 'ET - Event Telemetry - GA4 purchase');
+  const body = JSON.parse(telemetry.parameter.find(param => param.key === 'requestBody').value);
+  assert.deepEqual(body, { eventName: 'purchase', destination: 'ga4', accepted: 1, failed: 0, validationFailed: 0 });
 });
